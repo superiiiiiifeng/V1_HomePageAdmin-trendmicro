@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HomePage-Admin</title>
+  <link rel="stylesheet" type="text/css" href="/node_modules/bootstrap/dist/css/bootstrap.css">
+  <link rel="stylesheet" href="/public/css/index.css">
+  <link rel="icon" href="/public/images/favicon.ico">
+  <link href="/public/css/main.css" rel="stylesheet">
+
+  <link rel="stylesheet" href="/public/components/css/font-awesome.css">
+  <link rel="stylesheet" href="/public/components/css/adminia.css">
+  <link rel="stylesheet" href="/public/components/css/adminia-responsive.css">
+  <link rel="stylesheet" href="/public/css/dropzone.css">
+  <link rel="stylesheet" href="/public/css/custom.css">
+
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+</head>
+<body>
+<nav class="header-top">
+  <div class="container">
+    <div class="left">
+      <a href="/" class="left">
+        <img src="/public/images/logo-company-black.webp" height="33" alt="">
+      </a>
+    </div>
+    <a href="/file" class="file-manager">文件管理</a>
+    <div class="right">
+      {{ if user }}
+      <a href="#">Administrator：<span>{{ user.email }} </span></a>
+      <a href="/logout">退出</a>
+      {{ else }}
+      <a href="/login">登录</a>
+      {{ /if }}
+    </div>
+  </div>
+</nav>
+{{ if user }}
+<div id="content">
+  <div class="container">
+      <div class="widget-content">
+        <h5>拖拽点击上传</h5>
+          <div class="row">
+              <div class="col-lg-3" v-for="(item,index) in dirsList">
+                  <h5>{[item.file_name.slice(1)]}</h5>
+                  <div :id="'dropz'+(index+1)" class="dropzone dz-clickable">
+                      <div class="dz-default dz-message">
+                          <span>Drop files here to upload</span>
+                      </div>
+                  </div>
+              </div>
+          </div>
+
+      </div>
+      <div class="widget-content">
+        <h5>所有文件列表</h5>
+        <div class="table-responsive">
+          <table class="table table-sm table-bordered row mx-0">
+            <thead class="w-100">
+            <tr class="row mx-0">
+              <th class="col-1"><input type="checkbox" class="checkAll"> #</th>
+              <th class="col-2">预览</th>
+              <th class="col-3">路径</th>
+              <th class="col-2">文件大小(Byte)</th>
+              <th class="col-3">最近操作时间</th>
+              <th class="col-1"><a href="javascript:void(0)" class="remove-file text-danger">删除</a></th>
+            </tr>
+            </thead>
+          </table>
+        </div>
+        <div class="table-responsive" v-for="(item,index1) in dirsList">
+          <h3><img src="/public/images/file.jpg" height="80" alt="">{[item.file_name.slice(1)]}</h3>
+          <table class="table table-sm table-bordered row mx-0">
+            <tbody class="w-100" id="filelist_tr">
+            <tr v-for="(item,index2) in filesList[index1]" class="cart-item row mx-0">
+              <th class="col-1 d-flex align-items-center justify-content-center"><input type="checkbox" class="j-checkbox"> {[index2+1]}</th>
+              <td class="col-2 d-flex align-items-center justify-content-center">
+                <img :src="item.file_name" height="32" alt="">
+              </td>
+              <td class="col-3 d-flex align-items-center justify-content-center">{[item.file_name.slice(1)]}</td>
+              <td class="col-2 d-flex align-items-center justify-content-center">{[item.file_size]}</td>
+              <td class="col-3 d-flex align-items-center justify-content-center">{[item.file_latest_ch]}</td>
+              <td class="col-1 d-flex align-items-center justify-content-center"><a href="javascript:void(0)" v-on:click="deleteFile(item.file_name)">删除</a></td>
+            </tr>
+            </tbody>
+          </table>
+        </div>
+
+      </div>
+  </div>
+</div>
+<div class="go-top">
+  <div class="arrow"></div>
+  <div class="stick"></div>
+</div>
+{{ /if }}
+
+<footer class="container">
+  <div class="copyright">
+    Copyright © 2021 Oka Apps Incorporated. All rights reserved.
+  </div>
+</footer>
+
+
+<script src="/node_modules/jquery/dist/jquery.js"></script>
+<script src="/node_modules/bootstrap/dist/js/bootstrap.js"></script>
+<script src="/public/js/dropzone.min.js"></script>
+<script src="/public/js/vue.js"></script>
+<script src="/public/js/custom.js"></script>
+
+<script>
+  function getDirs(str) {
+    str = str.replace(/&#34;/g, '"');
+    str = str.slice(1, str.length - 1);
+    str = str.replace(/},/g, '}]');
+    str = str.split(']');
+    for (let i = 0; i < str.length; i++) {
+      str[i] = JSON.parse(str[i]);
+    }
+    return str
+  }
+  //get dirs
+  var dirs = "<%=dirs_info%>";
+  // console.log(dirs);
+  dirs = getDirs(dirs);
+  // console.log(dirs);
+
+  function getFiles(str) {
+    str = str.replace(/&#34;/g, '"');
+    str = str.slice(1, str.length - 1);
+    str = str.replace(/],/g, ']}],');
+    str = str.split('}],');
+    for (let i = 0; i < str.length; i++) {
+      str[i] = JSON.parse(str[i]);
+    }
+    return str
+  }
+  //get files
+  var files = "<%=file_info%>";
+  // console.log(files);
+  files = getFiles(files);
+  // console.log(files);
+
+    const app = new Vue({
+      delimiters: ['{[', ']}'],
+      el: '#content',
+      data: {
+        filesList: files,
+        dirsList: dirs
+      },
+      methods: {
+        deleteFile: function (file_name) {
+          $.post('/deleteFile.html', {file_name: file_name}, function (obj) {
+            // console.log(obj.dirs);
+            // console.log(obj.files);
+            app.filesList = obj.files;
+            app.dirsList = obj.dirs;
+          })
+
+        },
+      }
+    });
+
+    // dropzone
+    Dropzone.autoDiscover = false;
+    var myDropzone1 = new Dropzone("#dropz1", {
+      url: "/upload.html",
+      headers: {path: './public/img/App/'},
+      maxFilesize: 100,
+      paramName: "file",
+      maxThumbnailFilesize: 5,
+      init: function () {
+        this.on('success', function () {
+          $.post('/file.html', {}, function (obj) {
+            // console.log(obj.dirs);
+            // console.log(obj.files);
+            app.filesList = obj.files;
+            app.dirsList = obj.dirs;
+          })
+        });
+      }
+    });
+  var myDropzone2 = new Dropzone("#dropz2", {
+      url: "/upload.html",
+      headers: {path: './public/img/AppComment/'},
+      maxFilesize: 100,
+      paramName: "file",
+      maxThumbnailFilesize: 5,
+      init: function () {
+          this.on('success', function () {
+              $.post('/file.html', {}, function (obj) {
+                  // console.log(obj.dirs);
+                  // console.log(obj.files);
+                  app.filesList = obj.files;
+                  app.dirsList = obj.dirs;
+              })
+          });
+      }
+  });
+  var myDropzone3 = new Dropzone("#dropz3", {
+      url: "/upload.html",
+      headers: {path: './public/img/AppFeature/'},
+      maxFilesize: 100,
+      paramName: "file",
+      maxThumbnailFilesize: 5,
+      init: function () {
+          this.on('success', function () {
+              $.post('/file.html', {}, function (obj) {
+                  // console.log(obj.dirs);
+                  // console.log(obj.files);
+                  app.filesList = obj.files;
+                  app.dirsList = obj.dirs;
+              })
+          });
+      }
+  });
+  var myDropzone4 = new Dropzone("#dropz4", {
+      url: "/upload.html",
+      headers: {path: './public/img/Blog/'},
+      maxFilesize: 100,
+      paramName: "file",
+      maxThumbnailFilesize: 5,
+      init: function () {
+          this.on('success', function () {
+              $.post('/file.html', {}, function (obj) {
+                  // console.log(obj.dirs);
+                  // console.log(obj.files);
+                  app.filesList = obj.files;
+                  app.dirsList = obj.dirs;
+              })
+          });
+      }
+  });
+
+
+    $(window).scroll(function () {
+      if ($(window).scrollTop() > 10)
+        $('div.go-top').show();
+      else
+        $('div.go-top').hide();
+    });
+    $(".go-top").hover(function () {
+      // body...
+      $(this).css('background-color', '#ffaeb9');
+    }, function () {
+      // body...
+      $(this).css('background-color', '#eddec2');
+    });
+
+    $('div.go-top').click(function () {
+      $('html, body').animate({scrollTop: 0}, 10);
+    });
+
+    //实现全选和全不选
+    $('.checkAll').change(function() {
+      // console.log($(this).prop('checked'));
+      $('.j-checkbox,.checkAll').prop('checked',$(this).prop('checked'));
+      // 添加背景和移除背景
+      if($(this).prop('checked')) {
+        $('.cart-item').addClass('check-cart-item');
+      } else {
+        $('.cart-item').removeClass('check-cart-item');
+      }
+    });
+    $('.j-checkbox').change(function() {
+      // console.log($('.j-checkbox:checked').length);
+      if($('.j-checkbox:checked').length === $('.j-checkbox').length) {
+        $('.checkAll').prop('checked',true);
+      } else {
+        $('.checkAll').prop('checked',false);
+      }
+      // 添加背景和移除背景
+      if($(this).prop('checked')) {
+        $(this).parents('.cart-item').addClass('check-cart-item');
+      } else {
+        $(this).parents('.cart-item').removeClass('check-cart-item');
+      }
+    });
+    // 删除选中
+    $('.remove-file').click(function() {
+      // console.log($('.j-checkbox:checked'));
+      $('.j-checkbox:checked').each((index,el) => {
+        // console.log(el);
+        // console.log(el.parentElement.parentElement.lastElementChild.lastElementChild);
+        el.parentElement.parentElement.lastElementChild.lastElementChild.click();
+        el.checked = false;
+        $(el.parentElement.parentElement).removeClass('check-cart-item');
+      });
+      $.post('/file.html', {}, function (obj) {
+        // console.log(obj.dirs);
+        // console.log(obj.files);
+        app.filesList = obj.files;
+        app.dirsList = obj.dirs;
+      })
+    })
+
+
+
+
+
+</script>
+
+
+</body>
+</html>
